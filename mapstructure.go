@@ -16,6 +16,14 @@ import (
 	"strings"
 )
 
+// Typed interface is implemented by the native Go structures
+// that would like to be added to the registry in the decoder config
+// so that it is possible to have different types of structs represented in the
+// arbitrary map[string]interace{}
+type Typed interface {
+	GetType() string
+}
+
 type DecodeHookFunc func(reflect.Kind, reflect.Kind, interface{}) (interface{}, error)
 
 // DecoderConfig is the configuration that is used to create a new decoder
@@ -59,6 +67,36 @@ type DecoderConfig struct {
 	// The tag name that mapstructure reads for field names. This
 	// defaults to "mapstructure"
 	TagName string
+
+	// The registry provides a lookup mapping to dynamically determine what type of
+	// native go struct to deserialize into. In order to create the mapping, the requirement
+	// is that the go structs implement the provided Typed interface, and the objects within the map[string]interface{}
+	// specify a type field that provides the lookup within the registry
+	registry map[string]reflect.Type
+}
+
+type InvalidType struct {
+	Message string
+}
+
+func (i InvalidType) Error() string {
+	return i.Message
+}
+
+// Registering a struct based on its type makes it possible
+// provides the decoder config with the possible structs to decode into when
+// decoding the overall map[string]interface{}
+func (d *DecoderConfig) RegisterType(t Typed) error {
+	if t.GetType() == "" {
+		return InvalidType{Message: fmt.Sprintf("No type set for %s", reflect.TypeOf(t))}
+	}
+
+	if d.registry == nil {
+		d.registry = make(map[string]reflect.Type)
+	}
+
+	d.registry[t.GetType()] = reflect.TypeOf(t)
+	return nil
 }
 
 // A Decoder takes a raw interface value and turns it into structured
@@ -215,12 +253,68 @@ func (d *Decoder) getKind(val reflect.Value) reflect.Kind {
 	}
 }
 
+func (d *Decoder) decodeRegisteredType(name string, data interface{}, val reflect.Value) error {
+
+	// expect data to be of type map[string]interface{}
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataValKind := dataVal.Kind()
+	if dataValKind != reflect.Map {
+		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataValKind)
+	}
+
+	dataValType := dataVal.Type()
+	if kind := dataValType.Key().Kind(); kind != reflect.String && kind != reflect.Interface {
+		return fmt.Errorf(
+			"'%s' needs a map with string keys, has '%s' keys",
+			name, dataValType.Key().Kind())
+	}
+
+	// expect data to have type string
+	rawMapVal := dataVal.MapIndex(reflect.ValueOf("type"))
+	if !rawMapVal.IsValid() {
+		return fmt.Errorf("'%s' expected map to contain type but it doesnt", name)
+	}
+
+	if rawMapVal.Elem().Kind() != reflect.String {
+		return fmt.Errorf("'%s' expected type field in map to be a string, instead got %s", name, rawMapVal.Elem().Kind())
+	}
+
+	dataType, ok := d.config.registry[rawMapVal.Interface().(string)]
+	if !ok {
+		return fmt.Errorf("'%s' Data type %s not found in registry", name, rawMapVal.Interface())
+	}
+
+	// ensure that the type looked up from the registry can be assigned to the val
+	if !dataType.AssignableTo(val.Type()) {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got '%s'",
+			name, val.Type(), dataValType)
+	}
+
+	dataTypeVal := reflect.New(dataType)
+	if err := d.decode(name, data, dataTypeVal.Elem()); err != nil {
+		return err
+	}
+
+	val.Set(dataTypeVal.Elem())
+	return nil
+}
+
 // This decodes a basic type (bool, int, string, etc.) and sets the
 // value to "data" of that type.
 func (d *Decoder) decodeBasic(name string, data interface{}, val reflect.Value) error {
+
 	dataVal := reflect.ValueOf(data)
 	dataValType := dataVal.Type()
 	if !dataValType.AssignableTo(val.Type()) {
+
+		// if the config specifies a registry,
+		// decode the data into a concrete type (looked up from the registry) that implements
+		// the interface specified by val
+		if len(d.config.registry) > 0 {
+			return d.decodeRegisteredType(name, data, val)
+		}
+
 		return fmt.Errorf(
 			"'%s' expected type '%s', got '%s'",
 			name, val.Type(), dataValType)
