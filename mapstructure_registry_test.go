@@ -15,7 +15,7 @@ type horse struct {
 	Breed  string
 }
 
-func (h horse) GetType() string {
+func (h horse) TypeName() string {
 	return "horse"
 }
 
@@ -28,7 +28,7 @@ type dog struct {
 	Color string
 }
 
-func (d dog) GetType() string {
+func (d dog) TypeName() string {
 	return "dog"
 }
 
@@ -41,7 +41,7 @@ type barn struct {
 	Name    string
 }
 
-func (b barn) GetType() string {
+func (b barn) TypeName() string {
 	return "barn"
 }
 
@@ -170,7 +170,7 @@ type notAnimal struct {
 	ItemName string
 }
 
-func (n notAnimal) GetType() string {
+func (n notAnimal) TypeName() string {
 	return "not_animal"
 }
 

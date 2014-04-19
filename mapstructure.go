@@ -21,7 +21,7 @@ import (
 // so that it is possible to have different types of structs represented in the
 // arbitrary map[string]interace{}
 type Typed interface {
-	GetType() string
+	TypeName() string
 }
 
 type DecodeHookFunc func(reflect.Kind, reflect.Kind, interface{}) (interface{}, error)
@@ -87,7 +87,7 @@ func (i InvalidType) Error() string {
 // provides the decoder config with the possible structs to decode into when
 // decoding the overall map[string]interface{}
 func (d *DecoderConfig) RegisterType(t Typed) error {
-	if t.GetType() == "" {
+	if t.TypeName() == "" {
 		return InvalidType{Message: fmt.Sprintf("No type set for %s", reflect.TypeOf(t))}
 	}
 
@@ -95,7 +95,7 @@ func (d *DecoderConfig) RegisterType(t Typed) error {
 		d.registry = make(map[string]reflect.Type)
 	}
 
-	d.registry[t.GetType()] = reflect.TypeOf(t)
+	d.registry[t.TypeName()] = reflect.TypeOf(t)
 	return nil
 }
 
