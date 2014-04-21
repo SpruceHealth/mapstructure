@@ -75,12 +75,12 @@ type DecoderConfig struct {
 	registry map[string]reflect.Type
 }
 
-type InvalidType struct {
+type RegistryTypeError struct {
 	Message string
 }
 
-func (i InvalidType) Error() string {
-	return i.Message
+func (r RegistryTypeError) Error() string {
+	return r.Message
 }
 
 // Registering a struct based on its type makes it possible
@@ -88,7 +88,7 @@ func (i InvalidType) Error() string {
 // decoding the overall map[string]interface{}
 func (d *DecoderConfig) RegisterType(t Typed) error {
 	if t.TypeName() == "" {
-		return InvalidType{Message: fmt.Sprintf("No type set for %s", reflect.TypeOf(t))}
+		return RegistryTypeError{Message: fmt.Sprintf("No type set for %s", reflect.TypeOf(t))}
 	}
 
 	if d.registry == nil {
@@ -96,6 +96,19 @@ func (d *DecoderConfig) RegisterType(t Typed) error {
 	}
 
 	d.registry[t.TypeName()] = reflect.TypeOf(t)
+	return nil
+}
+
+func (d *DecoderConfig) SetRegistry(r map[string]reflect.Type) error {
+	// lets ensure that every type in the map implements the typed interface
+	for _, typedInterfaceItem := range r {
+
+		if !typedInterfaceItem.Implements(reflect.TypeOf((*Typed)(nil)).Elem()) {
+			return RegistryTypeError{Message: fmt.Sprintf("every type in the registry should implemnet the Typed interface")}
+		}
+	}
+
+	d.registry = r
 	return nil
 }
 

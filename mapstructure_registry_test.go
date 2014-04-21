@@ -166,6 +166,100 @@ func TestMultipleEmbeddedType(t *testing.T) {
 	}
 }
 
+func TestMultipleEmbeddedTypeWithRegistrySet(t *testing.T) {
+	input := map[string]interface{}{
+		"count":     2,
+		"groupname": "Old Macdonald's Barns",
+		"barns": []interface{}{
+			map[string]interface{}{
+				"type": "barn",
+				"animals": []interface{}{
+					map[string]interface{}{
+						"type":  "dog",
+						"breed": "yorkie",
+						"color": "brown",
+					},
+					map[string]interface{}{
+						"type":   "horse",
+						"color":  "black",
+						"weight": "500kg",
+					},
+				},
+			},
+			map[string]interface{}{
+				"type": "barn",
+				"animals": []interface{}{
+					map[string]interface{}{
+						"type":  "dog",
+						"breed": "golden_retriever",
+						"color": "brown",
+					},
+					map[string]interface{}{
+						"type":   "dog",
+						"color":  "black",
+						"weight": "500kg",
+					},
+				},
+			},
+		},
+	}
+
+	barns := barnList{}
+
+	decodeConfig := &DecoderConfig{}
+	decodeConfig.Result = &barns
+
+	registry := make(map[string]reflect.Type)
+	var d dog
+	var h horse
+	var b barn
+	registry[d.TypeName()] = reflect.TypeOf(d)
+	registry[h.TypeName()] = reflect.TypeOf(h)
+	registry[b.TypeName()] = reflect.TypeOf(b)
+	if err := decodeConfig.SetRegistry(registry); err != nil {
+		t.Fatalf("Error when attempting to set registry in decoder config: %s", err)
+	}
+
+	dc, err := NewDecoder(decodeConfig)
+	if err != nil {
+		t.Fatalf("error creating new decoder: %s", err)
+	}
+
+	err = dc.Decode(input)
+	if err != nil {
+		t.Fatalf("Got error %s", err)
+	}
+
+	if len(barns.Barns) != 2 {
+		t.Fatalf("Expected 2 barns instead got %d", len(barns.Barns))
+	}
+
+	if barns.Count != 2 {
+		t.Fatalf("Expected top level count to be 2 instead got %d", barns.Count)
+	}
+
+	if barns.GroupName != input["groupname"] {
+		t.Fatalf("Expected groupname to be %s instead it was %s", input["groupname"], barns.GroupName)
+	}
+}
+
+func TestIncorrectRegistry_Error(t *testing.T) {
+	barns := barnList{}
+	decodeConfig := &DecoderConfig{}
+	decodeConfig.Result = &barns
+
+	registry := make(map[string]reflect.Type)
+	var d dog
+	var h horse
+	var b barn
+	registry[d.TypeName()] = reflect.TypeOf(d)
+	registry[h.TypeName()] = reflect.TypeOf(h)
+	registry[b.TypeName()] = reflect.TypeOf("string")
+	if err := decodeConfig.SetRegistry(registry); err == nil {
+		t.Fatalf("Expected error when attempting to set registry in decoder config with an incorrect registry")
+	}
+}
+
 type notAnimal struct {
 	ItemName string
 }
