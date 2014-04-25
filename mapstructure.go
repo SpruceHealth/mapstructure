@@ -291,7 +291,7 @@ func (d *Decoder) decodeRegisteredType(name string, data interface{}, val reflec
 		return fmt.Errorf("'%s' expected type field in map to be a string, instead got %s", name, rawMapVal.Elem().Kind())
 	}
 
-	dataType, ok := d.config.registry[rawMapVal.Interface().(string)]
+	dataType, ok := d.config.registry[rawMapVal.Elem().String()]
 	if !ok {
 		return fmt.Errorf("'%s' Data type %s not found in registry", name, rawMapVal.Interface())
 	}
