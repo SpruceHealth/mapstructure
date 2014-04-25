@@ -313,7 +313,6 @@ func (d *Decoder) decodeRegisteredType(name string, data interface{}, val reflec
 // This decodes a basic type (bool, int, string, etc.) and sets the
 // value to "data" of that type.
 func (d *Decoder) decodeBasic(name string, data interface{}, val reflect.Value) error {
-
 	dataVal := reflect.ValueOf(data)
 	dataValType := dataVal.Type()
 	if !dataValType.AssignableTo(val.Type()) {
