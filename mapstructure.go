@@ -83,8 +83,8 @@ func (r RegistryTypeError) Error() string {
 	return r.Message
 }
 
-// Registering a struct based on its type makes it possible
-// provides the decoder config with the possible structs to decode into when
+// RegisterType takes a struct that confirms to the typed interface
+// to provide the decoder config with the possible structs to decode into when
 // decoding the overall map[string]interface{}
 func (d *DecoderConfig) RegisterType(t Typed) error {
 	if t.TypeName() == "" {
@@ -102,9 +102,8 @@ func (d *DecoderConfig) RegisterType(t Typed) error {
 func (d *DecoderConfig) SetRegistry(r map[string]reflect.Type) error {
 	// lets ensure that every type in the map implements the typed interface
 	for _, typedInterfaceItem := range r {
-
 		if !typedInterfaceItem.Implements(reflect.TypeOf((*Typed)(nil)).Elem()) {
-			return RegistryTypeError{Message: fmt.Sprintf("every type in the registry should implemnet the Typed interface")}
+			return RegistryTypeError{Message: fmt.Sprintf("Every type in the registry should implemnet the Typed interface but %s does not conform to the Typed Interface", typedInterfaceItem)}
 		}
 	}
 
