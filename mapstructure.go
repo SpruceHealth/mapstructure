@@ -61,7 +61,7 @@ type DecoderConfig struct {
 	TagName string
 
 	// Registry keeps track of mapping of type name to the type of native go structure
-	// to use when wanting to decode a map structure into a structure with fields that
+	// to use when wanting to decode a generic map into a native go structure that contains fields that
 	// are structures of different types. The requirement is that the appropriate object in the
 	// generic map has a type field to help identify the type of native go structure to use by looking up
 	// in the registry
