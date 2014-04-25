@@ -98,7 +98,7 @@ func (tr TypeRegistry) Len() int {
 	return len(tr.registry)
 }
 
-// RegisterType takes a struct that confirms to the typed interface
+// MustRegisterType takes a struct that confirms to the typed interface
 // to provide the decoder config with the possible structs to decode into when
 // decoding the overall map[string]interface{}
 func (tr TypeRegistry) MustRegisterType(t Typed) {
