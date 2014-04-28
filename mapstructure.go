@@ -89,21 +89,25 @@ func NewTypeRegistry() *TypeRegistry {
 	}
 }
 
-func (tr TypeRegistry) Get(key string) (reflect.Type, bool) {
+func (tr *TypeRegistry) Get(key string) (reflect.Type, bool) {
 	registeredType, ok := tr.registry[key]
 	return registeredType, ok
 }
 
-func (tr TypeRegistry) Len() int {
+func (tr *TypeRegistry) Len() int {
 	return len(tr.registry)
 }
 
 // MustRegisterType takes a struct that confirms to the typed interface
 // to provide the decoder config with the possible structs to decode into when
 // decoding the overall map[string]interface{}
-func (tr TypeRegistry) MustRegisterType(t Typed) {
+func (tr *TypeRegistry) MustRegisterType(t Typed) {
 	if t.TypeName() == "" {
 		panic(fmt.Sprintf("No type set for %s", reflect.TypeOf(t)))
+	}
+
+	if foundType, ok := tr.registry[t.TypeName()]; ok {
+		panic(fmt.Sprintf("Type name %s already found in registry with type %s", t.TypeName(), foundType))
 	}
 
 	tr.registry[t.TypeName()] = reflect.TypeOf(t)

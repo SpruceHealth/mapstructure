@@ -271,3 +271,16 @@ func TestNoType_Error(t *testing.T) {
 		t.Fatalf("Expected error but got none", err)
 	}
 }
+
+func TestAlreadyRegisteredType_Error(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Expected a panic from the registry for registering same type twice but got no panic")
+		}
+	}()
+
+	registry := NewTypeRegistry()
+
+	registry.MustRegisterType(dog{})
+	registry.MustRegisterType(dog{})
+}
