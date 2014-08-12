@@ -827,3 +827,28 @@ func testSliceInput(t *testing.T, input map[string]interface{}, expected *Slice)
 		}
 	}
 }
+
+type testStruct struct {
+	Value int
+}
+
+type matchingStruct struct {
+	Struct *testStruct
+}
+
+func TestDecodeMatchingStruct(t *testing.T) {
+	t.Parallel()
+
+	input := map[string]interface{}{
+		"Struct": &testStruct{Value: 123},
+	}
+
+	var result matchingStruct
+	if err := Decode(input, &result); err != nil {
+		t.Fatalf("got an err: %s", err)
+	}
+
+	if result.Struct.Value != 123 {
+		t.Fatalf("got %+v, wanted %+v", result.Struct, input["Struct"])
+	}
+}

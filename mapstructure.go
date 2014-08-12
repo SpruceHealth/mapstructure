@@ -654,7 +654,13 @@ func (d *Decoder) decodeSlice(name string, data interface{}, val reflect.Value) 
 func (d *Decoder) decodeStruct(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataValKind := dataVal.Kind()
-	if dataValKind != reflect.Map {
+	if dataValKind == reflect.Struct {
+		if dataVal.Type() == val.Type() {
+			val.Set(dataVal)
+			return nil
+		}
+		return fmt.Errorf("'%s' expected a struct of type %v, got %v", name, val.Type(), dataVal.Type())
+	} else if dataValKind != reflect.Map {
 		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataValKind)
 	}
 
